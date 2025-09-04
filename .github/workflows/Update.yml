@@ -2,28 +2,40 @@ name: Update
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'script/cust_gfwdomain.conf'
 
   schedule:
-    - cron: 0 4 */3 * *
+    - cron: 0 */4 * * *
 
 jobs:
   Smartdns-GFWList:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.REPO_TOKEN }}
-      - name: Smartdns conf List
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Smartdns GFWList
         run: |
-          bash script/update.sh
+          bash default/update.sh
+          mkdir -p /tmp/domain-lists
+          cp direct-domain-list.conf proxy-domain-list.conf /tmp/domain-lists/
+
+      - name: Push to Releases branch
+        run: |
+          git config user.name "Action Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          cp  /tmp/domain-lists/direct-domain-list.conf /tmp/domain-lists/proxy-domain-list.conf .
+          git add direct-domain-list.conf proxy-domain-list.conf
+          git commit -m "Update domain lists"
+          git push origin Releases
+
       - name: Push
-        id: list-push
+        id: gfw-push
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Update Smartdns conf
+          commit_message: Update GFWList
           skip_dirty_check: false
           commit_user_name: Action Bot
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
